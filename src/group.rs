@@ -3,21 +3,19 @@ use web_sys::HtmlInputElement;
 use web_sys::KeyboardEvent;
 use yew::prelude::*;
 
-
 #[derive(Properties, PartialEq)]
 pub struct GroupProps {
     pub name: String,
-    pub color: String,  // Pass the color from the parent component
+    pub color: String, // Pass the color from the parent component
 }
 
 #[function_component(Group)]
 pub fn group(props: &GroupProps) -> Html {
-    let tasks = use_state(|| Vec::new()); 
+    let tasks = use_state(|| Vec::new());
     let group_name = use_state(|| props.name.clone());
     let is_expanded = use_state(|| false);
     let is_editing = use_state(|| false);
 
-    // The random color is now passed as a prop and won't change on re-renders
     let random_color = &props.color;
 
     let on_add_task = {
@@ -95,10 +93,22 @@ pub fn group(props: &GroupProps) -> Html {
             </div>
             { if *is_expanded {
                 html! {
+                    <>
+                    <div class="grid grid-cols-7 gap-4 mt-2 ml-8 text-left font-semibold text-sm text-gray-800">
+                        <span>{"Task"}</span>
+                        <span>{"Date"}</span>
+                        <span>{"Area"}</span>
+                        <span>{"Project Owner"}</span>
+                        <span>{"Notes"}</span>
+                        <span>{"Files / Image Capture"}</span>
+                        <span>{"Progress"}</span>
+                    </div>
                     <ul class="mt-4">
-                        { for tasks.iter().map(|task| html! { <Task name={task.clone()} /> }) }
+                        { for tasks.iter().map(|task| html! { <Task name={task.clone()} color={props.color.clone()} /> }) }
+
                         <AddTaskRow on_add={on_add_task.clone()} />
                     </ul>
+                    </>
                 }
             } else {
                 html! { }
@@ -107,24 +117,23 @@ pub fn group(props: &GroupProps) -> Html {
     }
 }
 
-
 #[derive(Properties, PartialEq)]
 pub struct TaskProps {
     pub name: String,
+    pub color: String, // Add color prop
 }
 
 #[function_component(Task)]
 pub fn task(props: &TaskProps) -> Html {
-    let subitems = use_state(Vec::new);
-    let task_name = use_state(|| props.name.clone());
+    let subitems = use_state(|| Vec::new());
     let is_expanded = use_state(|| false);
+    let task_name = use_state(|| props.name.clone());
     let date = use_state(|| "2024-08-11".to_string());
     let area = use_state(|| "Area 1".to_string());
     let owner = use_state(|| "Owner 1".to_string());
     let notes = use_state(|| "Sample Note".to_string());
     let files = use_state(|| "0".to_string());
     let budget = use_state(|| "$0".to_string());
-    let progress = use_state(|| "0%".to_string());
 
     let on_add_subitem = {
         let subitems = subitems.clone();
@@ -142,17 +151,6 @@ pub fn task(props: &TaskProps) -> Html {
         })
     };
 
-    let on_task_name_change = {
-        let task_name = task_name.clone();
-        Callback::from(move |e: KeyboardEvent| {
-            if e.key() == "Enter" {
-                if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
-                    task_name.set(input.value());
-                }
-            }
-        })
-    };
-
     let on_input_change = |setter: UseStateHandle<String>| {
         Callback::from(move |e: KeyboardEvent| {
             if e.key() == "Enter" {
@@ -164,40 +162,50 @@ pub fn task(props: &TaskProps) -> Html {
     };
 
     html! {
-        <li class="ml-4 p-4 border rounded-lg shadow-md my-2">
-            <div class="flex items-center">
-                <button onclick={toggle_expand} class="mr-2">
+        <>
+        <li class={format!("grid grid-cols-7 gap-0 items-center bg-white border border-{}-500 rounded-lg p-3 mb-2 shadow-sm border-l-8",props.color.clone())}>
+            <div class="flex items-center space-x-2">
+                <button onclick={toggle_expand} class="focus:outline-none">
                     { if *is_expanded { "v" } else { ">" } }
                 </button>
                 <input
-                    class="text-lg font-semibold border-b-2 focus:outline-none"
+                    class="text-base font-medium border-none focus:ring-0 focus:border-blue-300 rounded-lg"
                     type="text"
                     value={(*task_name).clone()}
-                    onkeydown={on_task_name_change}
+                    onkeydown={on_input_change(task_name.clone())}
                 />
             </div>
-            { if *is_expanded {
-                html! {
-                    <div>
-                        <div class="grid grid-cols-7 gap-4 mt-4">
-                            <input class="border rounded p-1" type="text" value={(*date).clone()} onkeydown={on_input_change(date.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*area).clone()} onkeydown={on_input_change(area.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*owner).clone()} onkeydown={on_input_change(owner.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*notes).clone()} onkeydown={on_input_change(notes.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*files).clone()} onkeydown={on_input_change(files.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*budget).clone()} onkeydown={on_input_change(budget.clone())} />
-                            <input class="border rounded p-1" type="text" value={(*progress).clone()} onkeydown={on_input_change(progress.clone())} />
-                        </div>
-                        <ul class="mt-4">
-                            { for subitems.iter().map(|subitem| html! { <Subitem name={subitem.clone()} /> }) }
-                            <AddSubitemRow on_add={on_add_subitem.clone()} />
-                        </ul>
-                    </div>
-                }
-            } else {
-                html! { }
-            }}
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*date).clone()} onkeydown={on_input_change(date.clone())} />
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*area).clone()} onkeydown={on_input_change(area.clone())} />
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*owner).clone()} onkeydown={on_input_change(owner.clone())} />
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*notes).clone()} onkeydown={on_input_change(notes.clone())} />
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*files).clone()} onkeydown={on_input_change(files.clone())} />
+            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*budget).clone()} onkeydown={on_input_change(budget.clone())} />
         </li>
+        { if *is_expanded {
+            html! {
+                <>
+                <div class="grid grid-cols-7 gap-4 mt-2 ml-8 text-left font-semibold text-sm text-gray-600">
+                    <span>{"Subitem"}</span>
+                    <span>{"Date"}</span>
+                    <span>{"Area"}</span>
+                    <span>{"People - Sent/Responded"}</span>
+                    <span>{"Notes"}</span>
+                    <span>{"Files / Image Capture"}</span>
+                    <span>{"Budget/Price"}</span>
+                </div>
+                <ul class="grid grid-cols-7 gap-0 mt-2 ml-8">
+                    { for subitems.iter().map(|subitem| html! { <Subitem name={subitem.clone()} /> }) }
+                    <li class="col-span-7">
+                        <AddSubitemRow on_add={on_add_subitem.clone()} />
+                    </li>
+                </ul>
+                </>
+            }
+        } else {
+            html! { }
+        }}
+        </>
     }
 }
 

@@ -6,7 +6,8 @@ use rand::Rng;
 
 #[function_component(App)]
 fn app() -> Html {
-    let groups = use_state(Vec::new);
+    let groups = use_state(|| Vec::<(String, String)>::new());
+
 
     let on_add_group = {
         let groups = groups.clone();
@@ -15,7 +16,7 @@ fn app() -> Html {
             let colors = vec!["red", "blue", "green", "purple", "orange"];
             let mut rng = rand::thread_rng();
             let color = colors[rng.gen_range(0..colors.len())].to_string();
-            new_groups.push((format!("This is a Sample Group"), color));
+            new_groups.push((format!("This is a Sample Group {}",new_groups.len()), color));
             groups.set(new_groups);
         })
     };
