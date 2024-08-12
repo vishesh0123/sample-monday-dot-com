@@ -94,14 +94,14 @@ pub fn group(props: &GroupProps) -> Html {
             { if *is_expanded {
                 html! {
                     <>
-                    <div class="grid grid-cols-7 gap-4 mt-2 ml-8 text-left font-semibold text-sm text-gray-800">
+                    <div class="grid grid-cols-7 gap-4 mt-2 ml-8 text-left font-semibold text-sm text-gray-1000">
                         <span>{"Task"}</span>
                         <span>{"Date"}</span>
                         <span>{"Area"}</span>
                         <span>{"Project Owner"}</span>
                         <span>{"Notes"}</span>
                         <span>{"Files / Image Capture"}</span>
-                        <span>{"Progress"}</span>
+                        <span>{"Budget/Price"}</span>
                     </div>
                     <ul class="mt-4">
                         { for tasks.iter().map(|task| html! { <Task name={task.clone()} color={props.color.clone()} /> }) }
@@ -183,9 +183,9 @@ pub fn task(props: &TaskProps) -> Html {
             <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*budget).clone()} onkeydown={on_input_change(budget.clone())} />
         </li>
         { if *is_expanded {
-            html! {
-                <>
-                <div class="grid grid-cols-7 gap-4 mt-2 ml-8 text-left font-semibold text-sm text-gray-600">
+           html! {
+            <>
+                <div class="grid grid-cols-7 gap-4 mt-6 ml-12 text-left font-semibold text-sm text-gray-1000">
                     <span>{"Subitem"}</span>
                     <span>{"Date"}</span>
                     <span>{"Area"}</span>
@@ -194,14 +194,18 @@ pub fn task(props: &TaskProps) -> Html {
                     <span>{"Files / Image Capture"}</span>
                     <span>{"Budget/Price"}</span>
                 </div>
-                <ul class="grid grid-cols-7 gap-0 mt-2 ml-8">
-                    { for subitems.iter().map(|subitem| html! { <Subitem name={subitem.clone()} /> }) }
-                    <li class="col-span-7">
+                <ul class="ml-8 mt-4">
+                    { for subitems.iter().map(|subitem| html! {
+                            <Subitem name={subitem.clone()} color={props.color.clone()} />
+                    }) }
+
+                    <li class="grid grid-cols-7 gap-4 mt-2 col-span-7">
                         <AddSubitemRow on_add={on_add_subitem.clone()} />
                     </li>
                 </ul>
-                </>
-            }
+            </>
+        }
+
         } else {
             html! { }
         }}
@@ -235,12 +239,12 @@ pub fn add_task_row(props: &AddTaskRowProps) -> Html {
     };
 
     html! {
-        <li class="ml-4 p-2 border rounded-lg shadow-sm my-1">
+        <li class="ml-4 mt-4 p-2 border rounded-lg shadow-sm my-1">
             <input
-                class="border rounded p-1 w-full"
+                class=" rounded p-1 w-full"
                 type="text"
                 value={(*task_name).clone()}
-                placeholder="Add task"
+                placeholder=" + Add task"
                 onkeydown={on_keydown}
             />
         </li>
@@ -275,10 +279,10 @@ pub fn add_subitem_row(props: &AddSubitemRowProps) -> Html {
     html! {
         <li class="ml-4 p-2 border rounded-lg shadow-sm my-1">
             <input
-                class="border rounded p-1 w-full"
+                class=" rounded p-1 w-full"
                 type="text"
                 value={(*subitem_name).clone()}
-                placeholder="Add subitem"
+                placeholder=" + Add subitem"
                 onkeydown={on_keydown}
             />
         </li>
