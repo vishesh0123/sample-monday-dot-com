@@ -1,22 +1,41 @@
 use crate::subitem::Subitem;
+use web_sys::console;
 use web_sys::HtmlInputElement;
 use web_sys::KeyboardEvent;
 use yew::prelude::*;
+use yew::use_effect_with;
 
 #[derive(Properties, PartialEq)]
 pub struct GroupProps {
     pub name: String,
-    pub color: String, // Pass the color from the parent component
+    pub color: String,
+    pub on_update_name: Callback<(usize, String)>,
+    pub index: usize,
 }
 
 #[function_component(Group)]
 pub fn group(props: &GroupProps) -> Html {
+    console::log_1(&format!("Props: {:?}", props.name.clone()).into());
     let tasks = use_state(|| Vec::new());
     let group_name = use_state(|| props.name.clone());
     let is_expanded = use_state(|| false);
     let is_editing = use_state(|| false);
 
     let random_color = &props.color;
+
+    {
+        let group_name = group_name.clone();
+        use_effect_with(props.name.clone(), move |name| {
+            console::log_1(&format!("Updating group_name to: {}", name).into());
+            group_name.set(name.clone());
+            || ()
+        });
+    }
+
+    console::log_1(&format!("Group Component Rendered: {}", *group_name).into());
+    console::log_1(&format!("Random Color: {}", random_color).into());
+    console::log_1(&format!("Is Expanded: {}", *is_expanded).into());
+    console::log_1(&format!("Is Editing: {}", *is_editing).into());
 
     let on_add_task = {
         let tasks = tasks.clone();
@@ -37,10 +56,14 @@ pub fn group(props: &GroupProps) -> Html {
     let on_group_name_change = {
         let group_name = group_name.clone();
         let is_editing = is_editing.clone();
+        let on_update_name = props.on_update_name.clone();
+        let index = props.index;
         Callback::from(move |e: KeyboardEvent| {
             if e.key() == "Enter" {
                 if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
-                    group_name.set(input.value());
+                    let new_name = input.value();
+                    group_name.set(new_name.clone());
+                    on_update_name.emit((index, new_name));
                     is_editing.set(false);
                 }
             }
