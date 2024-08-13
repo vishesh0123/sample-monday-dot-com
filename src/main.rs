@@ -3,11 +3,13 @@ mod group;
 mod subitem;
 use group::Group;
 use rand::Rng;
-use web_sys::console;
 
 #[function_component(App)]
 fn app() -> Html {
-    let groups = use_state(|| Vec::<(String, String)>::new());
+    let groups = use_state(|| vec![
+        ("This is Sample Group 1".to_string(), "purple".to_string()),
+        ("This is Sample Group 2".to_string(), "red".to_string())
+    ]);
 
     let on_add_group = {
         let groups = groups.clone();

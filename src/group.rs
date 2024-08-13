@@ -1,5 +1,4 @@
 use crate::subitem::Subitem;
-use web_sys::console;
 use web_sys::HtmlInputElement;
 use web_sys::KeyboardEvent;
 use yew::prelude::*;
@@ -26,7 +25,6 @@ pub struct SubitemData {
 
 #[function_component(Group)]
 pub fn group(props: &GroupProps) -> Html {
-    console::log_1(&format!("Props: {:?}", props.name.clone()).into());
     let tasks = use_state(|| Vec::<TaskData>::new());
     let group_name = use_state(|| props.name.clone());
     let is_expanded = use_state(|| false);
@@ -37,7 +35,6 @@ pub fn group(props: &GroupProps) -> Html {
     {
         let group_name = group_name.clone();
         use_effect_with(props.name.clone(), move |name| {
-            console::log_1(&format!("Updating group_name to: {}", name).into());
             group_name.set(name.clone());
             || ()
         });
@@ -45,11 +42,6 @@ pub fn group(props: &GroupProps) -> Html {
 
     let task_count = tasks.len();
     let subitem_count: usize = tasks.iter().map(|task| task.subitems.len()).sum();
-
-    console::log_1(&format!("Group Component Rendered: {}", *group_name).into());
-    console::log_1(&format!("Random Color: {}", random_color).into());
-    console::log_1(&format!("Is Expanded: {}", *is_expanded).into());
-    console::log_1(&format!("Is Editing: {}", *is_editing).into());
 
     let on_add_task = {
         let tasks = tasks.clone();
@@ -152,18 +144,30 @@ pub fn group(props: &GroupProps) -> Html {
                         { for (*tasks).iter().enumerate().map(|(index, task)| {
                             let cloned_tasks = tasks.clone();
                             html! {
+                                <>
                                 <Task
                                     name={task.name.clone()}
                                     color={props.color.clone()}
                                     subitems={task.subitems.clone()}
-                                    on_add_subitem={Callback::from(move |subitem_name: String| {
+                                    on_add_subitem={{
+                                        let cloned_tasks = cloned_tasks.clone();
+                                        Callback::from(move |subitem_name: String| {
+                                            let mut new_tasks = (*cloned_tasks).clone();
+                                            if let Some(task) = new_tasks.get_mut(index) {
+                                                task.subitems.push(SubitemData { name: subitem_name.clone() });
+                                            }
+                                            cloned_tasks.set(new_tasks);
+                                        })
+                                    }}
+                                    on_update_name={Callback::from(move |new_task_name: String| {
                                         let mut new_tasks = (*cloned_tasks).clone();
                                         if let Some(task) = new_tasks.get_mut(index) {
-                                            task.subitems.push(SubitemData { name: subitem_name });
+                                            task.name = new_task_name.clone();
                                         }
                                         cloned_tasks.set(new_tasks);
                                     })}
                                 />
+                                </>
                             }
                         })}
 
@@ -184,6 +188,7 @@ pub struct TaskProps {
     pub color: String,
     pub subitems: Vec<SubitemData>,
     pub on_add_subitem: Callback<String>,
+    pub on_update_name: Callback<String>,
 }
 
 #[function_component(Task)]
@@ -198,6 +203,16 @@ pub fn task(props: &TaskProps) -> Html {
     let files = use_state(|| "0".to_string());
     let budget = use_state(|| "$0".to_string());
 
+    let task_name_callback = props.on_update_name.clone();
+
+    {
+        let task_name = task_name.clone();
+        use_effect_with(props.name.clone(), move |name| {
+            task_name.set(name.clone());
+            || ()
+        });
+    }
+
     let toggle_expand = {
         let is_expanded = is_expanded.clone();
         Callback::from(move |_| {
@@ -205,11 +220,13 @@ pub fn task(props: &TaskProps) -> Html {
         })
     };
 
-    let on_input_change = |setter: UseStateHandle<String>| {
+    let on_input_change = |setter: UseStateHandle<String>, on_update: Callback<String>| {
         Callback::from(move |e: KeyboardEvent| {
             if e.key() == "Enter" {
                 if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
-                    setter.set(input.value());
+                    let value = input.value();
+                    setter.set(value.clone());
+                    on_update.emit(value);
                 }
             }
         })
@@ -230,55 +247,70 @@ pub fn task(props: &TaskProps) -> Html {
 
     html! {
         <>
-        <li class={format!("grid grid-cols-7 gap-0 items-center bg-white border border-{}-500 rounded-lg p-3 mb-2 shadow-sm border-l-8",props.color.clone())}>
-            <div class="flex items-center space-x-2">
-                <button onclick={toggle_expand} class="focus:outline-none">
-                    { if *is_expanded { "v" } else { ">" } }
-                </button>
-                <input
-                    class="text-base font-medium border-none focus:ring-0 focus:border-blue-300 rounded-lg"
-                    type="text"
-                    value={(*task_name).clone()}
-                    onkeydown={on_input_change(task_name.clone())}
-                />
-            </div>
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*date).clone()} onkeydown={on_input_change(date.clone())} />
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*area).clone()} onkeydown={on_input_change(area.clone())} />
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*owner).clone()} onkeydown={on_input_change(owner.clone())} />
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*notes).clone()} onkeydown={on_input_change(notes.clone())} />
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*files).clone()} onkeydown={on_input_change(files.clone())} />
-            <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*budget).clone()} onkeydown={on_input_change(budget.clone())} />
-        </li>
-        { if *is_expanded {
-           html! {
-            <>
-                <div class="grid grid-cols-7 gap-4 mt-6 ml-12 text-left font-semibold text-sm text-gray-1000">
-                    <span>{"Subitem"}</span>
-                    <span>{"Date"}</span>
-                    <span>{"Area"}</span>
-                    <span>{"People - Sent/Responded"}</span>
-                    <span>{"Notes"}</span>
-                    <span>{"Files / Image Capture"}</span>
-                    <span>{"Budget/Price"}</span>
+            <li class={format!("grid grid-cols-7 gap-0 items-center bg-white border border-{}-500 rounded-lg p-3 mb-2 shadow-sm border-l-8", props.color.clone())}>
+                <div class="flex items-center space-x-2">
+                    <button onclick={toggle_expand} class="focus:outline-none">
+                        { if *is_expanded { "v" } else { ">" } }
+                    </button>
+                    <input
+                        class="text-base font-medium border-none focus:ring-0 focus:border-blue-300 rounded-lg"
+                        type="text"
+                        value={(*task_name).clone()}
+                        onkeydown={on_input_change(task_name.clone(), task_name_callback)}
+                    />
                 </div>
-                <ul class="ml-8 mt-4">
-                    { for subitems.iter().enumerate().map(|(index, subitem)| html! {
-                        <Subitem
-                            name={subitem.name.clone()}
-                            color={props.color.clone()}
-                        />
-                    })}
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*date).clone()} onkeydown={on_input_change(date.clone(), Callback::noop())} />
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*area).clone()} onkeydown={on_input_change(area.clone(), Callback::noop())} />
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*owner).clone()} onkeydown={on_input_change(owner.clone(), Callback::noop())} />
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*notes).clone()} onkeydown={on_input_change(notes.clone(), Callback::noop())} />
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*files).clone()} onkeydown={on_input_change(files.clone(), Callback::noop())} />
+                <input class="text-sm border-none focus:ring-0 focus:border-blue-300" type="text" value={(*budget).clone()} onkeydown={on_input_change(budget.clone(), Callback::noop())} />
+            </li>
+            { if *is_expanded {
+                html! {
+                    <>
+                        <div class="grid grid-cols-7 gap-4 mt-6 ml-12 text-left font-semibold text-sm text-gray-1000">
+                            <span>{"Subitem"}</span>
+                            <span>{"Date"}</span>
+                            <span>{"Area"}</span>
+                            <span>{"People - Sent/Responded"}</span>
+                            <span>{"Notes"}</span>
+                            <span>{"Files / Image Capture"}</span>
+                            <span>{"Budget/Price"}</span>
+                        </div>
+                        <ul class="ml-8 mt-4">
+                            { for (*subitems).iter().enumerate().map(|(index, subitem)| {
+                                let cloned_subitems = subitems.clone();
+                                html! {
+                                    <Subitem
+                                        name={subitem.name.clone()}
+                                        color={props.color.clone()}
+                                        on_update_name={Callback::from(move |new_name: String| {
+                                            let mut new_subitems = (*cloned_subitems).clone();
+                                            if let Some(subitem) = new_subitems.get_mut(index) {
+                                                subitem.name = new_name.clone();
+                                            }
+                                            cloned_subitems.set(new_subitems);
+                                        })}
+                                        on_update_date={Callback::noop()}
+                                        on_update_area={Callback::noop()}
+                                        on_update_people={Callback::noop()}
+                                        on_update_notes={Callback::noop()}
+                                        on_update_files={Callback::noop()}
+                                        on_update_budget={Callback::noop()}
+                                    />
+                                }
+                            })}
 
-                    <li class="grid grid-cols-7 gap-4 mt-2 col-span-7">
-                        <AddSubitemRow on_add={on_add_subitem.clone()} />
-                    </li>
-                </ul>
-            </>
-        }
-
-        } else {
-            html! { }
-        }}
+                            <li class="grid grid-cols-7 gap-4 mt-2 col-span-7">
+                                <AddSubitemRow on_add={on_add_subitem.clone()} />
+                            </li>
+                        </ul>
+                    </>
+                }
+            } else {
+                html! { }
+            }}
         </>
     }
 }
